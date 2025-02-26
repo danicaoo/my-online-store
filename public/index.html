@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Каталог товаров</title>
+</head>
+<body>
+    <h1>Каталог товаров</h1>
+    <div id="categories"></div> <!-- Контейнер для категорий -->
+
+    <script>
+        fetch('http://localhost:3000/products')
+            .then(response => response.json())
+            .then(data => {
+                const categoriesDiv = document.getElementById('categories');
+                
+                // Объединяем товары по категориям
+                const categories = {};
+
+                data.products.forEach(product => {
+                    product.categories.forEach(category => {
+                        if (!categories[category]) {
+                            categories[category] = [];
+                        }
+                        categories[category].push(product);
+                    });
+                });
+
+                // Создаем карточки по категориям
+                for (const [category, products] of Object.entries(categories)) {
+                    const categorySection = document.createElement('div');
+                    categorySection.innerHTML = `<h2>${category}</h2>`;
+                    
+                    products.forEach(product => {
+                        const productCard = document.createElement('div');
+                        productCard.innerHTML = `
+                            <h3>${product.name}</h3>
+                            <p>Цена: ${product.price} руб.</p>
+                            <p>${product.description}</p>
+                        `;
+                        categorySection.appendChild(productCard);
+                    });
+                    categoriesDiv.appendChild(categorySection);
+                   }
+               })
+               .catch(error => console.error('Ошибка:', error)); // Обработка ошибок
+       </script>
+   </body>
+   </html>
+
