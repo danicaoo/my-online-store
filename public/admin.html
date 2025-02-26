@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель администратора интернет-магазина</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        form { margin-bottom: 20px; }
+        label { display: block; margin: 10px 0 5px; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
+        button { padding: 10px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Панель администратора</h1>
+
+    <h2>Добавить новый товар</h2>
+    <form id="add-product-form">
+        <label for="name">Название товара:</label>
+        <input type="text" id="name" required>
+        
+        <label for="price">Цена (руб.):</label>
+        <input type="number" id="price" required>
+        
+        <label for="description">Описание:</label>
+        <textarea id="description" required></textarea>
+        
+        <label for="categories">Категории (через запятую):</label>
+        <input type="text" id="categories" required>
+        
+        <button type="submit">Добавить товар</button>
+    </form>
+
+    <h2>Редактировать товар</h2>
+    <form id="edit-product-form">
+        <label for="edit-id">ID товара:</label>
+        <input type="number" id="edit-id" required>
+        
+        <label for="edit-name">Новое название товара:</label>
+        <input type="text" id="edit-name">
+        
+        <label for="edit-price">Новая цена (руб.):</label>
+        <input type="number" id="edit-price">
+        
+        <label for="edit-description">Новое описание:</label>
+        <textarea id="edit-description"></textarea>
+        
+        <button type="submit">Обновить товар</button>
+    </form>
+
+    <h2>Удалить товар</h2>
+    <form id="delete-product-form">
+        <label for="delete-id">ID товара для удаления:</label>
+        <input type="number" id="delete-id" required>
+        
+        <button type="submit">Удалить товар</button>
+    </form>
+
+    <script>
+        // Добавление товара
+        document.getElementById('add-product-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const name = document.getElementById('name').value;
+            const price = document.getElementById('price').value;
+            const description = document.getElementById('description').value;
+            const categories = document.getElementById('categories').value.split(',').map(cat => cat.trim());
+
+            fetch('http://localhost:3001/admin/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    name,
+                    price: parseFloat(price),
+                    description,
+                    categories
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Товар добавлен: ' + JSON.stringify(data));
+                // Очистка формы
+                document.getElementById('add-product-form').reset();
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+
+        // Редактирование товара
+        document.getElementById('edit-product-form').addEventListener('submit', function(event) {            event.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const name = document.getElementById('edit-name').value;
+            const price = document.getElementById('edit-price').value;
+            const description = document.getElementById('edit-description').value;
+
+            const updatedData = {};
+            if (name) updatedData.name = name;
+            if (price) updatedData.price = parseFloat(price);
+            if (description) updatedData.description = description;
+
+            fetch(`http://localhost:3001/admin/products/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updatedData),
+            })
+            .then(response => response.json())
+            .then(data => {
+                alert('Товар обновлен: ' + JSON.stringify(data));
+                // Очистка формы
+                document.getElementById('edit-product-form').reset();
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+
+        // Удаление товара
+        document.getElementById('delete-product-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const id = document.getElementById('delete-id').value;
+
+            fetch(`http://localhost:3001/admin/products/${id}`, {
+                method: 'DELETE',
+            })
+            .then(() => {
+                alert('Товар успешно удален');
+                // Очистка формы
+                document.getElementById('delete-product-form').reset();
+            })
+            .catch(error => console.error('Ошибка:', error));
+        });
+    </script>
+</body>
+</html>
