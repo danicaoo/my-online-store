@@ -11,6 +11,8 @@
         input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
         button { padding: 10px 15px; }
     </style>
+    <script src="https://unpkg.com/@apollo/client@3.3.13/core/index.js"></script>
+    <script src="https://unpkg.com/subscription-transport-ws/dist/browser/client.js"></script>
 </head>
 <body>
     <h1>Панель администратора</h1>
@@ -81,14 +83,14 @@
             .then(response => response.json())
             .then(data => {
                 alert('Товар добавлен: ' + JSON.stringify(data));
-                // Очистка формы
                 document.getElementById('add-product-form').reset();
             })
             .catch(error => console.error('Ошибка:', error));
         });
 
         // Редактирование товара
-        document.getElementById('edit-product-form').addEventListener('submit', function(event) {            event.preventDefault();
+        document.getElementById('edit-product-form').addEventListener('submit', function(event) {
+            event.preventDefault();
             const id = document.getElementById('edit-id').value;
             const name = document.getElementById('edit-name').value;
             const price = document.getElementById('edit-price').value;
@@ -109,7 +111,6 @@
             .then(response => response.json())
             .then(data => {
                 alert('Товар обновлен: ' + JSON.stringify(data));
-                // Очистка формы
                 document.getElementById('edit-product-form').reset();
             })
             .catch(error => console.error('Ошибка:', error));
@@ -125,10 +126,64 @@
             })
             .then(() => {
                 alert('Товар успешно удален');
-                // Очистка формы
                 document.getElementById('delete-product-form').reset();
             })
             .catch(error => console.error('Ошибка:', error));
+        });
+
+        // WebSocket подключение
+        const socket = new WebSocket('ws://localhost:5001');
+
+        socket.onopen = function() {
+            console.log('Connected to WebSocket server');
+        };
+
+        socket.onmessage = function(event) {
+            const updatedProduct = JSON.parse(event.data);
+            alert('Обновлен товар: ' + updatedProduct.name); // Или выводите другую информацию по вашему выбору
+            // Можно получить список обновленных товаров, если необходимо
+        };
+
+        socket.onclose = function() {
+            console.log('Disconnected from WebSocket server');
+        };
+        
+        // Подключение к GraphQL
+        const { ApolloClient, InMemoryCache, gql } = window['@apollo/client/core'];
+        const { SubscriptionClient } = window['subscriptions-transport-ws'];
+
+        const subscriptionClient = new SubscriptionClient('ws://localhost:5001/graphql', {
+            reconnect: true,
+        });
+
+        const client = new ApolloClient({
+            link: subscriptionClient,
+            cache: new InMemoryCache(),
+        });
+
+        const PRODUCT_UPDATED_SUBSCRIPTION = gql`
+            subscription OnProductUpdated {
+                productUpdated {
+                    id
+                    name
+                    price
+                    description
+                    categories
+                }
+            }
+        `;
+
+        client.subscribe({
+            query: PRODUCT_UPDATED_SUBSCRIPTION
+        }).subscribe({
+            next({ data }) {
+                const product = data.productUpdated;
+                alert('Обновлен товар через GraphQL: ' + product.name); // Или выполните другие действия
+                // Вы можете выполнить обновление списка товаров здесь
+            },
+            error(err) {
+                console.error('Ошибка в подписке:', err);
+            },
         });
     </script>
 </body>

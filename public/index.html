@@ -4,48 +4,111 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Каталог товаров</title>
+    <script src="https://unpkg.com/@apollo/client@3.3.13/core/index.js"></script>
+    <script src="https://unpkg.com/subscription-transport-ws/dist/browser/client.js"></script>
 </head>
 <body>
     <h1>Каталог товаров</h1>
     <div id="categories"></div> <!-- Контейнер для категорий -->
 
     <script>
-        fetch('http://localhost:3000/products')
-            .then(response => response.json())
-            .then(data => {
-                const categoriesDiv = document.getElementById('categories');
-                
-                // Объединяем товары по категориям
-                const categories = {};
+        // Функция для получения продуктов из REST API
+        function fetchProducts() {
+            fetch('http://localhost:3000/products')
+                .then(response => response.json())
+                .then(data => {
+                    const categoriesDiv = document.getElementById('categories');
+                    categoriesDiv.innerHTML = ''; // Очистка предыдущих данных
 
-                data.products.forEach(product => {
-                    product.categories.forEach(category => {
-                        if (!categories[category]) {
-                            categories[category] = [];
-                        }
-                        categories[category].push(product);
+                    // Объединяем товары по категориям
+                    const categories = {};
+
+                    data.products.forEach(product => {
+                        product.categories.forEach(category => {
+                            if (!categories[category]) {
+                                categories[category] = [];
+                            }
+                            categories[category].push(product);
+                        });
                     });
-                });
 
-                // Создаем карточки по категориям
-                for (const [category, products] of Object.entries(categories)) {
-                    const categorySection = document.createElement('div');
-                    categorySection.innerHTML = `<h2>${category}</h2>`;
-                    
-                    products.forEach(product => {
-                        const productCard = document.createElement('div');
-                        productCard.innerHTML = `
-                            <h3>${product.name}</h3>
-                            <p>Цена: ${product.price} руб.</p>
-                            <p>${product.description}</p>
-                        `;
-                        categorySection.appendChild(productCard);
-                    });
-                    categoriesDiv.appendChild(categorySection);
-                   }
-               })
-               .catch(error => console.error('Ошибка:', error)); // Обработка ошибок
-       </script>
-   </body>
-   </html>
+                    // Создаем карточки по категориям
+                    for (const [category, products] of Object.entries(categories)) {
+                        const categorySection = document.createElement('div');
+                        categorySection.innerHTML = `<h2>${category}</h2>`;
+                        
+                        products.forEach(product => {
+                            const productCard = document.createElement('div');
+                            productCard.innerHTML = `
+                                <h3>${product.name}</h3>
+                                <p>Цена: ${product.price} руб.</p>
+                                <p>${product.description}</p>
+                            `;
+                            categorySection.appendChild(productCard);
+                        });
+                        categoriesDiv.appendChild(categorySection);
+                    }
+                })
+                .catch(error => console.error('Ошибка:', error)); // Обработка ошибок
+        }
 
+        // Вызов функции для получения данных при загрузке страницы
+        fetchProducts();
+        
+        // WebSocket подключение
+        const socket = new WebSocket('ws://localhost:5001');
+
+        socket.onopen = function() {
+            console.log('Connected to WebSocket server');
+        };
+
+        socket.onmessage = function(event) {
+            const updatedProduct = JSON.parse(event.data);
+            console.log('Received updated product:', updatedProduct);
+
+            // После получения обновления, повторно загружаем продукты
+            fetchProducts();
+        };
+
+        socket.onclose = function() {
+            console.log('Disconnected from WebSocket server');
+        };
+        
+        // Подключение к GraphQL
+        const { ApolloClient, InMemoryCache, ApolloProvider, gql } = window['@apollo/client/core'];
+        const { SubscriptionClient } = window['subscriptions-transport-ws'];        const subscriptionClient = new SubscriptionClient('ws://localhost:5001/graphql', {
+            reconnect: true,
+        });
+
+        const client = new ApolloClient({
+            link: subscriptionClient,
+            cache: new InMemoryCache(),
+        });
+
+        // Пример подписки на изменения данных GraphQL
+        const PRODUCT_UPDATED_SUBSCRIPTION = gql`
+            subscription OnProductUpdated {
+                productUpdated {
+                    id
+                    name
+                    price
+                    description
+                    categories
+                }
+            }
+        `;
+
+        client.subscribe({
+            query: PRODUCT_UPDATED_SUBSCRIPTION
+        }).subscribe({
+            next({ data }) {
+                console.log('Product updated:', data.productUpdated);
+                fetchProducts(); // Перезагружаем продукты при обновлении
+            },
+            error(err) {
+                console.error('Error in subscription:', err);
+            },
+        });
+    </script>
+</body>
+</html>
