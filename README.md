@@ -29,14 +29,16 @@ GraphQL подписки
 
 Убедитесь, что у вас установлен Node.js (версия 12 или выше)
 Установите зависимости:
-bash
+```bash
 npm install express cors ws graphql express-graphql
+```
 Запустите серверы (в разных терминалах):
-bash
+```bash
 node productServer.js
 node adminServer.js
 node graphql.js
 node websocketServer.js
+```
 Откройте в браузере:
 Каталог товаров: http://localhost:3003/index.html
 Админ-панель: http://localhost:8080/admin.html
@@ -65,7 +67,7 @@ ws://localhost:5001 - для реальных обновлений
 
 Данные хранятся в файле data/products.json в следующем формате:
 
-json
+```json
 {
   "products": [
     {
@@ -77,6 +79,7 @@ json
     }
   ]
 }
+```
 Технологии
 
 Frontend: HTML, JavaScript
